@@ -12,7 +12,7 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #050a14 !important; background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #050a14 100%); color: #e2e8f0; overflow-x: hidden; min-height: 100vh; }
         .tech-font { font-family: 'Orbitron', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.7) !important; backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .team-display-name { font-size: 3.2rem; font-weight: 900; text-shadow: 0 0 20px rgba(0, 242, 255, 0.6); text-align: center; background: transparent !important; color: white !important; line-height: 1.2; }
+        .team-display-name { font-size: 3.2rem; font-weight: 900; text-shadow: 0 0 20px rgba(0, 242, 255, 0.6); text-align: center; background: transparent !important; color: white !important; line-height: 1.2; word-break: break-all; }
         .slot-machine-anim { animation: slot-scroll 0.1s infinite linear; filter: blur(4px); opacity: 0.7; }
         @keyframes slot-scroll { 0% { transform: translateY(-5px); } 100% { transform: translateY(5px); } }
         .score-input-direct, #timer-input { background: rgba(0,0,0,0.5) !important; border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; }
@@ -28,6 +28,7 @@
 </head>
 <body class="min-h-screen overflow-hidden">
 
+    <!-- 1. 開機啟動視窗 -->
     <div id="init-modal" style="display: flex;">
         <div class="glass-card relative z-10 max-w-lg w-full p-10 rounded-3xl text-center border-cyan-500/30 shadow-2xl">
             <h2 class="text-3xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 tech-font">SYSTEM BOOT</h2>
@@ -39,6 +40,7 @@
         </div>
     </div>
 
+    <!-- 2. 密碼驗證視窗 -->
     <div id="password-modal">
         <div class="glass-card p-8 rounded-3xl border-red-500/50 w-80 text-center">
             <h3 class="text-xl font-bold text-red-500 mb-4 tech-font">ADMIN RESET</h3>
@@ -55,7 +57,7 @@
         <header class="flex justify-between items-end mb-6">
             <div class="flex flex-col">
                 <h1 class="main-title">資優盃光の驅動車大賽</h1>
-                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest">PREMIUM CLOUD SYSTEM V6.7</p>
+                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest">PREMIUM CLOUD SYSTEM V6.8</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="announceTopFive()" class="px-4 py-2 rounded-full bg-yellow-600/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold hover:bg-yellow-600/40 transition-all">📢 播報排名</button>
@@ -66,6 +68,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div class="lg:col-span-8 space-y-6">
+                <!-- 隊伍管理 -->
                 <section id="setup-panel" class="glass-card rounded-2xl p-6 hidden">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-black tech-font text-cyan-400 uppercase">隊伍註冊表</h3>
@@ -74,6 +77,7 @@
                     <div id="team-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2"></div>
                 </section>
 
+                <!-- 比賽對戰區 -->
                 <section class="glass-card rounded-[2rem] p-8 border-l-[8px] border-cyan-500 relative">
                     <div class="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
                         <div class="w-full md:w-[40%] text-center">
@@ -110,6 +114,7 @@
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-cyan-500/50 text-cyan-200 px-8 py-3 rounded-full opacity-0 transition-all pointer-events-none z-[300] font-bold shadow-2xl"></div>
 
+    <!-- Firebase 邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -141,7 +146,7 @@
                 speak("系統已啟動，正在同步雲端數據。");
                 notify("✅ 已同步雲端進度");
             } else {
-                initDatabase(); // 重新開始時直接初始化
+                initDatabase(); // 重新開始時直接初始化名單
             }
         }
 
@@ -173,7 +178,7 @@
                 document.getElementById('reset-pw-input').value = "";
                 closePwModal();
                 speak("數據已重設。");
-                notify("🔄 數據已歸零");
+                notify("🔄 數據已重置");
             } else {
                 notify("❌ 密碼錯誤");
             }
@@ -215,6 +220,7 @@
                     const data = d.data();
                     return { id: d.id, ...data, score: Number(data.score) || 0 };
                 });
+                console.log("資料更新:", teams); // 用於檢查是否抓到資料
                 updateUI();
             });
         }
@@ -222,7 +228,7 @@
         function updateUI() {
             const sorted = getSortedTeams();
             
-            // 渲染排行榜
+            // 渲染排行榜 - 修正佈局防止隊名消失
             document.getElementById('leaderboard').innerHTML = sorted.map((t, i) => {
                 const hasScore = t.score > 0 || t.hasRaced;
                 let rStyle = (hasScore) ? (i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "") : "";
@@ -230,13 +236,15 @@
                 
                 return `
                     <div class="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/5 transition-all ${rStyle}">
-                        <div class="flex items-center min-w-0 flex-1 mr-2">
-                            <span class="tech-font text-slate-500 text-sm w-6 flex-shrink-0">${i+1}</span>
-                            <span class="font-bold truncate px-1 ${i<3 && hasScore ? 'text-white text-lg' : 'text-slate-300'}">${medal} ${t.name}</span>
+                        <div class="flex items-center min-w-0 flex-1">
+                            <span class="tech-font text-slate-500 text-sm w-8 flex-shrink-0">${i+1}</span>
+                            <span class="font-bold text-white text-base md:text-lg break-all mr-2">
+                                ${medal} ${t.name || '未命名'}
+                            </span>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <input type="number" value="${t.score}" onchange="updateRemoteScore('${t.id}', this.value)" class="score-input-direct">
-                            <span class="text-[10px] text-slate-500 tech-font">CM</span>
+                            <span class="text-[10px] text-slate-400 tech-font">CM</span>
                         </div>
                     </div>`;
             }).join('');
