@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資優盃光の驅動車大賽 - Firebase 版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* 這裡保留您原本所有的 CSS 樣式 (省略以縮短長度) */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;500;700;900&display=swap');
+        :root { --neon-blue: #00f2ff; --neon-purple: #bc13fe; --gold: #fbbf24; --silver: #e2e8f0; --bronze: #cd7f32; --neon-red: #ff4757; --neon-pink: #ff007f; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #050a14; background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #050a14 100%); color: #e2e8f0; overflow-x: hidden; }
+        .tech-font { font-family: 'Orbitron', sans-serif; }
+        .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .team-display-name { font-size: 3.2rem; font-weight: 900; letter-spacing: -0.05em; text-shadow: 0 0 20px rgba(0, 242, 255, 0.6), 0 0 40px rgba(0, 242, 255, 0.3); text-align: center; }
+        #p2-name { text-shadow: 0 0 20px rgba(188, 19, 254, 0.6), 0 0 40px rgba(188, 19, 254, 0.3); }
+        .slot-machine-anim { animation: slot-scroll 0.1s infinite linear; filter: blur(4px); opacity: 0.7; }
+        @keyframes slot-scroll { 0% { transform: translateY(-5px); } 50% { transform: translateY(5px); } 100% { transform: translateY(-5px); } }
+        .rank-1 { background: linear-gradient(90deg, rgba(251, 191, 36, 0.25) 0%, rgba(15, 23, 42, 0.9) 100%) !important; border-left: 8px solid var(--gold) !important; box-shadow: 0 0 30px rgba(251, 191, 36, 0.2); }
+        .rank-2 { background: linear-gradient(90deg, rgba(226, 232, 240, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%) !important; border-left: 8px solid var(--silver) !important; box-shadow: 0 0 20px rgba(226, 232, 240, 0.1); }
+        .rank-3 { background: linear-gradient(90deg, rgba(205, 127, 50, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%) !important; border-left: 8px solid var(--bronze) !important; box-shadow: 0 0 20px rgba(205, 127, 50, 0.1); }
+        .rank-text-big { font-size: 1.3rem; font-weight: 900; }
+        .timer-warning { color: var(--neon-red) !important; text-shadow: 0 0 20px rgba(255, 71, 87, 0.8), 0 0 40px rgba(255, 71, 87, 0.4) !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .score-input-direct { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); text-align: right; width: 90px; font-family: 'Orbitron', sans-serif; color: #10b981; border-radius: 8px; }
+        .main-title { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #6366f1 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        @media (min-width: 768px) { .main-title { font-size: 4.5rem; } }
+        #password-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 500; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="min-h-screen overflow-hidden">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 1. 這裡請貼上您從 Firebase 專案設定中複製的金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3b3-J5nQS2xDJzCvYLqeQbM9cWLQxe1w",
+            authDomain: "light-car-system.firebaseapp.com",
+            projectId: "light-car-system",
+            storageBucket: "light-car-system.firebasestorage.app",
+            messagingSenderId: "805248579532",
+            appId: "1:805248579532:web:001d761d2dd193b9d94f69"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 掛載到 window 供外部呼叫
+        window.db = db;
+        window.fs = { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, writeBatch };
+
+        // 啟動監聽
+        listenToTeams();
+    </script>
+
+    <div id="password-modal">
+        <div class="glass-card p-8 rounded-3xl border-red-500/50 w-80 text-center">
+            <h3 class="text-xl font-bold text-red-500 mb-4 tech-font">RESTRICTED ACCESS</h3>
+            <input type="password" id="reset-pw-input" class="w-full bg-black/50 border border-slate-700 rounded-xl py-3 text-center text-white mb-4">
+            <div class="flex gap-2">
+                <button onclick="closePwModal()" class="flex-1 py-2 bg-slate-800 rounded-lg text-sm text-white">取消</button>
+                <button onclick="confirmFullReset()" class="flex-1 py-2 bg-red-600 rounded-lg text-sm text-white font-bold">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 pt-4">
+        <header class="flex justify-between items-end mb-6">
+            <div class="flex flex-col">
+                <h1 class="main-title">資優盃光の驅動車大賽</h1>
+                <p class="text-xs text-cyan-500/80 font-bold tech-font">PREMIUM CLOUD SYSTEM V6.0</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="initDatabase()" class="px-4 py-2 rounded-full bg-indigo-600/20 border border-indigo-500/50 text-indigo-400 text-xs font-bold">初始化隊伍</button>
+                <button onclick="toggleManage()" class="px-4 py-2 rounded-full border border-slate-700 text-slate-400 text-xs font-bold">隊伍管理</button>
+                <button onclick="openPwModal()" class="px-4 py-2 rounded-full border border-red-900/50 text-red-500 text-xs font-bold">遊戲重設</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-8 space-y-6">
+                <section id="setup-panel" class="glass-card rounded-2xl p-6 hidden">
+                    <div class="flex justify-between mb-6">
+                        <h3 class="text-xl font-black text-cyan-400">隊伍管理</h3>
+                        <button onclick="addTeam()" class="bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold">＋ 新增隊伍</button>
+                    </div>
+                    <div id="team-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto"></div>
+                </section>
+
+                <section class="glass-card rounded-[2rem] p-6 border-l-[8px] border-cyan-500 relative">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+                        <div class="w-full md:w-[38%] p-6 rounded-2xl bg-slate-900/80 text-center">
+                            <div id="p1-name" class="team-display-name text-white h-24 flex items-center justify-center">---</div>
+                            <input type="number" id="p1-score" placeholder="輸入距離" class="w-full bg-black/50 border border-slate-800 rounded-xl py-3 text-center text-3xl text-cyan-400 font-mono">
+                        </div>
+                        <div class="flex flex-col items-center min-w-[220px]">
+                            <input type="number" id="timer-input" value="60" class="text-8xl font-black text-white" onchange="updateCustomTimer(this.value)">
+                            <div class="text-xl font-black text-slate-700 italic">VERSUS</div>
+                        </div>
+                        <div class="w-full md:w-[38%] p-6 rounded-2xl bg-slate-900/80 text-center">
+                            <div id="p2-name" class="team-display-name text-white h-24 flex items-center justify-center">---</div>
+                            <input type="number" id="p2-score" placeholder="輸入距離" class="w-full bg-black/50 border border-slate-800 rounded-xl py-3 text-center text-3xl text-purple-400 font-mono">
+                        </div>
+                    </div>
+                    <div class="flex justify-center gap-4">
+                        <button id="draw-btn" onclick="drawMatch()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black">隨機抽籤</button>
+                        <button id="timer-btn" onclick="toggleTimer()" class="bg-cyan-600 text-white px-8 py-3 rounded-xl font-black">開始計時</button>
+                        <button onclick="saveMatch()" class="bg-emerald-600 text-white px-8 py-3 rounded-xl font-black">紀錄成績</button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="lg:col-span-4">
+                <section class="glass-card rounded-2xl p-6 h-[calc(100vh-160px)] flex flex-col">
+                    <h3 class="text-2xl font-black mb-4">🏆 排行榜</h3>
+                    <div id="leaderboard" class="space-y-3 overflow-y-auto flex-1"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-cyan-500/50 text-cyan-200 px-8 py-3 rounded-full opacity-0 transition-all pointer-events-none z-[300] font-bold"></div>
+
+    <script>
+        // 核心變數
+        let teams = [];
+        let p1Data = null, p2Data = null, defaultSeconds = 60, timerVal = 60, isRunning = false, interval = null;
+        let isDrawing = false;
+
+        // 即時監聽資料庫
+        function listenToTeams() {
+            const teamsCol = window.fs.collection(window.db, 'teams');
+            window.fs.onSnapshot(teamsCol, (snapshot) => {
+                teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateUI();
+                console.log("雲端資料同步中...", teams);
+            });
+        }
+
+        // 初始化資料庫 (第一次使用必點)
+        async function initDatabase() {
+            if(!confirm("這將會清除雲端資料並重新建立 10 支隊伍，確定嗎？")) return;
+            const { doc, setDoc } = window.fs;
+            for (let i = 1; i <= 10; i++) {
+                await setDoc(doc(window.db, "teams", i.toString()), {
+                    name: `第 ${i} 隊`,
+                    score: 0,
+                    hasRaced: false
+                });
+            }
+            notify("✅ 初始化完成！");
+        }
+
+        // UI 更新
+        function updateUI() {
+            // 排行榜
+            const sorted = [...teams].sort((a,b) => b.score - a.score);
+            document.getElementById('leaderboard').innerHTML = sorted.map((t, i) => `
+                <div class="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/10 ${i<3 && t.score>0 ? 'border-yellow-500/50' : ''}">
+                    <span>${i+1}. ${t.name}</span>
+                    <div class="flex items-center gap-2">
+                        <input type="number" value="${t.score}" onchange="updateRemoteScore('${t.id}', this.value)" class="score-input-direct">
+                        <span class="text-[10px] text-slate-500">cm</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // 管理介面
+            document.getElementById('team-list').innerHTML = teams.map(t => `
+                <div class="p-4 bg-white/5 rounded-xl border border-white/10 flex gap-2">
+                    <input type="text" value="${t.name}" id="input-${t.id}" class="bg-black/40 flex-1 px-2 rounded">
+                    <button onclick="updateRemoteName('${t.id}')" class="bg-cyan-600 px-2 rounded text-xs">改名</button>
+                    <button onclick="removeTeam('${t.id}')" class="text-red-500">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // 雲端讀寫功能
+        async function updateRemoteScore(id, val) {
+            await window.fs.updateDoc(window.fs.doc(window.db, "teams", id), { score: parseFloat(val) || 0, hasRaced: true });
+        }
+
+        async function updateRemoteName(id) {
+            const newName = document.getElementById(`input-${id}`).value;
+            await window.fs.updateDoc(window.fs.doc(window.db, "teams", id), { name: newName });
+            notify("✅ 隊名已修改");
+        }
+
+        async function saveMatch() {
+            if (!p1Data) return notify("請先抽籤");
+            const s1 = parseFloat(document.getElementById('p1-score').value) || 0;
+            const s2 = parseFloat(document.getElementById('p2-score').value) || 0;
+            
+            await updateRemoteScore(p1Data.id, s1);
+            if(p2Data) await updateRemoteScore(p2Data.id, s2);
+
+            confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
+            notify("🏆 成績已同步至雲端");
+        }
+
+        // 抽籤邏輯
+        function drawMatch() {
+            if (isDrawing) return;
+            const pool = teams.filter(t => !t.hasRaced);
+            if (pool.length === 0) return notify("所有隊伍皆已完賽");
+
+            isDrawing = true;
+            const p1Display = document.getElementById('p1-name');
+            const p2Display = document.getElementById('p2-name');
+            p1Display.classList.add('slot-machine-anim');
+            p2Display.classList.add('slot-machine-anim');
+
+            let counter = 0;
+            const scrollInterval = setInterval(() => {
+                p1Display.innerText = teams[Math.floor(Math.random() * teams.length)].name;
+                p2Display.innerText = teams[Math.floor(Math.random() * teams.length)].name;
+                counter++;
+                if (counter > 20) {
+                    clearInterval(scrollInterval);
+                    p1Display.classList.remove('slot-machine-anim');
+                    p2Display.classList.remove('slot-machine-anim');
+                    
+                    p1Data = pool[Math.floor(Math.random() * pool.length)];
+                    p2Data = pool.length > 1 ? pool.filter(t => t.id !== p1Data.id)[Math.floor(Math.random() * (pool.length-1))] : null;
+                    
+                    p1Display.innerText = p1Data.name;
+                    p2Display.innerText = p2Data ? p2Data.name : "測試選手";
+                    isDrawing = false;
+                }
+            }, 100);
+        }
+
+        // 計時器功能
+        function toggleTimer() {
+            const btn = document.getElementById('timer-btn');
+            if (isRunning) { 
+                clearInterval(interval); isRunning = false; btn.innerText = "繼續計時"; 
+            } else {
+                isRunning = true; btn.innerText = "暫停";
+                interval = setInterval(() => {
+                    timerVal--;
+                    document.getElementById('timer-input').value = timerVal;
+                    if (timerVal <= 0) { 
+                        clearInterval(interval); isRunning = false; btn.innerText = "結束";
+                        confetti({ particleCount: 50 });
+                    }
+                }, 1000);
+            }
+        }
+
+        // 其他輔助功能
+        function notify(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = '1'; setTimeout(() => t.style.opacity='0', 2500); }
+        function toggleManage() { document.getElementById('setup-panel').classList.toggle('hidden'); }
+        function openPwModal() { document.getElementById('password-modal').style.display = 'flex'; }
+        function closePwModal() { document.getElementById('password-modal').style.display = 'none'; }
+        async function confirmFullReset() {
+            if(document.getElementById('reset-pw-input').value === "00000") {
+                const batch = window.fs.writeBatch(window.db);
+                teams.forEach(t => {
+                    const ref = window.fs.doc(window.db, "teams", t.id);
+                    batch.update(ref, { score: 0, hasRaced: false });
+                });
+                await batch.commit();
+                notify("🔄 數據已全數歸零");
+                closePwModal();
+            }
+        }
+    </script>
+</body>
+</html>
