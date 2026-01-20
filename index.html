@@ -12,7 +12,7 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #050a14 !important; background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #050a14 100%); color: #e2e8f0; overflow-x: hidden; min-height: 100vh; }
         .tech-font { font-family: 'Orbitron', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.7) !important; backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .team-display-name { font-size: 3.2rem; font-weight: 900; text-shadow: 0 0 20px rgba(0, 242, 255, 0.6); text-align: center; background: transparent !important; color: white !important; }
+        .team-display-name { font-size: 3.2rem; font-weight: 900; text-shadow: 0 0 20px rgba(0, 242, 255, 0.6); text-align: center; background: transparent !important; color: white !important; line-height: 1.2; }
         .slot-machine-anim { animation: slot-scroll 0.1s infinite linear; filter: blur(4px); opacity: 0.7; }
         @keyframes slot-scroll { 0% { transform: translateY(-5px); } 100% { transform: translateY(5px); } }
         .score-input-direct, #timer-input { background: rgba(0,0,0,0.5) !important; border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; }
@@ -55,7 +55,7 @@
         <header class="flex justify-between items-end mb-6">
             <div class="flex flex-col">
                 <h1 class="main-title">資優盃光の驅動車大賽</h1>
-                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest">PREMIUM CLOUD SYSTEM V6.6</p>
+                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest">PREMIUM CLOUD SYSTEM V6.7</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="announceTopFive()" class="px-4 py-2 rounded-full bg-yellow-600/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold hover:bg-yellow-600/40 transition-all">📢 播報排名</button>
@@ -78,7 +78,7 @@
                     <div class="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
                         <div class="w-full md:w-[40%] text-center">
                             <div class="text-[10px] text-cyan-500 tech-font mb-2 tracking-widest uppercase">Pilot Alpha</div>
-                            <div id="p1-name" class="team-display-name h-24 flex items-center justify-center truncate px-2">---</div>
+                            <div id="p1-name" class="team-display-name h-24 flex items-center justify-center px-2">---</div>
                             <input type="number" id="p1-score" placeholder="輸入距離" class="w-full bg-black/40 border border-slate-800 rounded-xl py-4 text-center text-3xl text-cyan-400 font-mono">
                         </div>
                         <div class="flex flex-col items-center">
@@ -87,7 +87,7 @@
                         </div>
                         <div class="w-full md:w-[40%] text-center">
                             <div class="text-[10px] text-purple-500 tech-font mb-2 tracking-widest uppercase">Pilot Bravo</div>
-                            <div id="p2-name" class="team-display-name h-24 flex items-center justify-center truncate px-2">---</div>
+                            <div id="p2-name" class="team-display-name h-24 flex items-center justify-center px-2">---</div>
                             <input type="number" id="p2-score" placeholder="輸入距離" class="w-full bg-black/40 border border-slate-800 rounded-xl py-4 text-center text-3xl text-purple-400 font-mono">
                         </div>
                     </div>
@@ -141,8 +141,21 @@
                 speak("系統已啟動，正在同步雲端數據。");
                 notify("✅ 已同步雲端進度");
             } else {
-                openPwModal();
+                initDatabase(); // 重新開始時直接初始化
             }
+        }
+
+        async function initDatabase() {
+            const { doc, setDoc } = window.fs;
+            for (let i = 1; i <= 10; i++) {
+                await setDoc(doc(window.db, "teams", i.toString()), {
+                    name: `第 ${i} 隊`,
+                    score: 0,
+                    hasRaced: false
+                });
+            }
+            speak("資料初始化成功，比賽開始。");
+            notify("✅ 已重設初始名單");
         }
 
         async function confirmFullReset() {
@@ -159,8 +172,8 @@
                 document.getElementById('p2-name').innerText = "---";
                 document.getElementById('reset-pw-input').value = "";
                 closePwModal();
-                speak("數據已重設，比賽開始。");
-                notify("🔄 數據已重置");
+                speak("數據已重設。");
+                notify("🔄 數據已歸零");
             } else {
                 notify("❌ 密碼錯誤");
             }
@@ -209,6 +222,7 @@
         function updateUI() {
             const sorted = getSortedTeams();
             
+            // 渲染排行榜
             document.getElementById('leaderboard').innerHTML = sorted.map((t, i) => {
                 const hasScore = t.score > 0 || t.hasRaced;
                 let rStyle = (hasScore) ? (i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "") : "";
@@ -216,9 +230,9 @@
                 
                 return `
                     <div class="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/5 transition-all ${rStyle}">
-                        <div class="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                            <span class="tech-font text-slate-500 text-sm w-5 flex-shrink-0">${i+1}</span>
-                            <span class="font-bold truncate whitespace-nowrap ${i<3 && hasScore ? 'text-white text-lg' : 'text-slate-300'}">${medal} ${t.name}</span>
+                        <div class="flex items-center min-w-0 flex-1 mr-2">
+                            <span class="tech-font text-slate-500 text-sm w-6 flex-shrink-0">${i+1}</span>
+                            <span class="font-bold truncate px-1 ${i<3 && hasScore ? 'text-white text-lg' : 'text-slate-300'}">${medal} ${t.name}</span>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <input type="number" value="${t.score}" onchange="updateRemoteScore('${t.id}', this.value)" class="score-input-direct">
