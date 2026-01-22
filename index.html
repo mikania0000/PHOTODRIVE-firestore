@@ -29,7 +29,7 @@
         .tech-font { font-family: 'Orbitron', sans-serif; }
         .glass-card { background: rgba(15, 23, 42, 0.6) !important; backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
         
-        /* 移除 number 輸入框的微調按鈕，確保文字絕對置中 */
+        /* 移除 number 輸入框的微調按鈕 */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -40,7 +40,26 @@
             text-align: center;
         }
 
-        /* 對戰隊名顯示 - 修正不換行邏輯 */
+        /* 修正排行榜輸入框：確保邊框完整 */
+        .score-input-direct { 
+            background: rgba(0,0,0,0.5) !important; 
+            border: 1px solid rgba(255,255,255,0.2) !important; 
+            color: #10b981; 
+            outline: none; 
+            text-align: right !important; 
+            width: 75px; 
+            font-family: 'Orbitron', sans-serif; 
+            border-radius: 6px; 
+            padding: 4px 8px; 
+            height: auto;
+            transition: border-color 0.2s;
+        }
+        .score-input-direct:focus {
+            border-color: var(--neon-blue) !important;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        /* 對戰隊名顯示 */
         .team-display-name { 
             font-size: clamp(1.2rem, 5vw, 2.8rem); 
             font-weight: 900; 
@@ -48,9 +67,9 @@
             text-align: center; 
             color: white !important; 
             line-height: 1.2;
-            white-space: nowrap;      /* 強制不換行 */
-            overflow: hidden;         /* 隱藏超出部分 */
-            text-overflow: ellipsis;  /* 超出顯示 ... */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             display: block;
             width: 100%;
         }
@@ -108,7 +127,7 @@
             to { transform: scale(1.1); box-shadow: 0 0 60px rgba(239, 68, 68, 0.9); }
         }
 
-        /* 標題字體放大兩倍 (原本 2.2rem -> 4.4rem) */
+        /* 標題字體放大兩倍 */
         .main-title { 
             font-size: 4.4rem; 
             font-weight: 900; 
@@ -126,8 +145,6 @@
 
         #init-modal, #password-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 500; align-items: center; justify-content: center; backdrop-filter: blur(12px); }
         
-        .score-input-direct { background: rgba(0,0,0,0.5) !important; border: 1px solid rgba(255,255,255,0.1); color: #10b981; outline: none; text-align: right; width: 75px; font-family: 'Orbitron', sans-serif; border-radius: 6px; padding: 4px; }
-        
         .rank-1 { background: linear-gradient(90deg, rgba(251, 191, 36, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%) !important; border-left: 8px solid var(--gold) !important; }
         .rank-2 { background: linear-gradient(90deg, rgba(226, 232, 240, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%) !important; border-left: 8px solid var(--silver) !important; }
         .rank-3 { background: linear-gradient(90deg, rgba(205, 127, 50, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%) !important; border-left: 8px solid var(--bronze) !important; }
@@ -139,7 +156,7 @@
     <div id="init-modal" style="display: flex;">
         <div class="glass-card relative z-10 max-w-lg w-full p-10 rounded-3xl text-center border-cyan-500/30 shadow-2xl">
             <h2 class="text-3xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 tech-font">SYSTEM BOOT</h2>
-            <p class="text-slate-400 mb-8 text-sm">資優盃光の驅動車管理系統 V6.16</p>
+            <p class="text-slate-400 mb-8 text-sm">資優盃光の驅動車管理系統 V6.18</p>
             <div class="grid grid-cols-2 gap-6">
                 <button onclick="startSystem(true)" class="group p-6 rounded-2xl bg-cyan-600/10 border border-cyan-500/50 hover:bg-cyan-600/30 transition-all text-cyan-400 font-bold">同步上次數據</button>
                 <button onclick="startSystem(false)" class="p-6 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-all text-white font-bold">重新開始比賽</button>
@@ -163,7 +180,7 @@
         <header class="flex justify-between items-end mb-6">
             <div class="flex flex-col">
                 <h1 class="main-title">資優盃光の驅動車大賽</h1>
-                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest uppercase">Ice Crystal Module V6.16</p>
+                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest uppercase">Ice Crystal Module V6.18</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="announceTopFive()" class="px-4 py-2 rounded-full bg-yellow-600/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold hover:bg-yellow-600/40 transition-all">📢 播報排名</button>
@@ -186,11 +203,11 @@
                 <!-- 對戰核心 -->
                 <section class="glass-card rounded-[2.5rem] p-10 border-l-[8px] border-cyan-500 relative overflow-hidden">
                     <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
-                        <!-- Alpha -->
-                        <div class="w-full md:w-[38%] flex flex-col items-center overflow-hidden">
+                        <!-- Alpha - 移除 overflow-hidden 以免遮到輸入框 -->
+                        <div class="w-full md:w-[38%] flex flex-col items-center">
                             <div class="text-[10px] text-cyan-400 tech-font mb-2 uppercase tracking-widest">Pilot Alpha</div>
                             <div id="p1-name" class="team-display-name h-24 flex items-center justify-center">---</div>
-                            <input type="number" id="p1-score" placeholder="成績" class="w-2/3 bg-black/40 border border-slate-800 rounded-xl py-3 text-center text-3xl text-cyan-400 font-mono mt-2">
+                            <input type="number" id="p1-score" placeholder="成績" class="w-2/3 bg-black/40 border border-slate-700 rounded-xl py-3 text-center text-3xl text-cyan-400 font-mono mt-4 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 outline-none transition-all">
                         </div>
                         
                         <!-- 計時核心 -->
@@ -201,11 +218,11 @@
                             <div class="text-xl font-black tech-font text-slate-700 italic mt-4 tracking-widest">VERSUS</div>
                         </div>
 
-                        <!-- Bravo -->
-                        <div class="w-full md:w-[38%] flex flex-col items-center overflow-hidden">
+                        <!-- Bravo - 移除 overflow-hidden -->
+                        <div class="w-full md:w-[38%] flex flex-col items-center">
                             <div class="text-[10px] text-purple-400 tech-font mb-2 uppercase tracking-widest">Pilot Bravo</div>
                             <div id="p2-name" class="team-display-name h-24 flex items-center justify-center">---</div>
-                            <input type="number" id="p2-score" placeholder="成績" class="w-2/3 bg-black/40 border border-slate-800 rounded-xl py-3 text-center text-3xl text-purple-400 font-mono mt-2">
+                            <input type="number" id="p2-score" placeholder="成績" class="w-2/3 bg-black/40 border border-slate-700 rounded-xl py-3 text-center text-3xl text-purple-400 font-mono mt-4 focus:border-purple-400 focus:ring-1 focus:ring-purple-400/30 outline-none transition-all">
                         </div>
                     </div>
                     
@@ -219,9 +236,9 @@
 
             <!-- 排行榜 -->
             <div class="lg:col-span-4">
-                <section class="glass-card rounded-2xl p-6 h-[calc(100vh-160px)] shadow-2xl flex flex-col relative">
+                <section class="glass-card rounded-2xl p-6 h-[calc(100vh-160px)] shadow-2xl flex flex-col relative overflow-hidden">
                     <h3 class="text-2xl font-black mb-6 flex items-center gap-2">🏆 榮譽排行榜</h3>
-                    <div id="leaderboard" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
+                    <div id="leaderboard" class="space-y-3 overflow-y-auto flex-1 pr-1 pb-4"></div>
                 </section>
             </div>
         </div>
@@ -342,7 +359,7 @@
                         </div>
                         <div class="flex items-center flex-shrink-0">
                             <input type="number" value="${t.score}" onchange="updateRemoteScore('${t.id}', this.value)" class="score-input-direct font-mono">
-                            <span class="text-[10px] text-slate-500 ml-1">CM</span>
+                            <span class="text-[10px] text-slate-400 ml-1">CM</span>
                         </div>
                     </div>`;
             }).join('');
@@ -365,11 +382,8 @@
             if (pool.length === 0) return notify("已完賽");
             isDrawing = true;
             speak("尋找對手...");
-            
-            // 隨機抽籤時清空對戰區的分數欄位
             document.getElementById('p1-score').value = "";
             document.getElementById('p2-score').value = "";
-
             const p1Disp = document.getElementById('p1-name'), p2Disp = document.getElementById('p2-name');
             p1Disp.classList.add('slot-machine-anim'); p2Disp.classList.add('slot-machine-anim');
             let counter = 0;
