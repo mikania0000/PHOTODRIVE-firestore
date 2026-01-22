@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資優盃光の驅動車大賽 - 冰晶科技版</title>
+    <title>資優盃光の驅動車大賽 - 冰晶科技穩定版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -37,17 +37,22 @@
         }
         input[type=number] {
             -moz-appearance: textfield;
+            text-align: center;
         }
 
-        /* 對戰隊名顯示 */
+        /* 對戰隊名顯示 - 修正不換行邏輯 */
         .team-display-name { 
-            font-size: clamp(1.2rem, 4vw, 2.8rem); 
+            font-size: clamp(1.2rem, 5vw, 2.8rem); 
             font-weight: 900; 
             text-shadow: 0 0 15px rgba(0, 242, 255, 0.5); 
             text-align: center; 
             color: white !important; 
             line-height: 1.2;
-            word-break: break-all;
+            white-space: nowrap;      /* 強制不換行 */
+            overflow: hidden;         /* 隱藏超出部分 */
+            text-overflow: ellipsis;  /* 超出顯示 ... */
+            display: block;
+            width: 100%;
         }
 
         .slot-machine-anim { animation: slot-scroll 0.1s infinite linear; filter: blur(4px); opacity: 0.7; }
@@ -82,11 +87,10 @@
             outline: none;
             cursor: pointer;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2), inset 0 -5px 10px rgba(0,0,0,0.05);
-            padding: 0; /* 移除 padding 確保置中 */
+            padding: 0; 
             z-index: 2;
         }
         
-        /* 10倍數時的紅冰特效 */
         #timer-input.special-interval {
             background: linear-gradient(180deg, #fee2e2 0%, #ef4444 100%) !important;
             color: white !important;
@@ -95,7 +99,6 @@
             border-color: #f87171;
         }
 
-        /* 最後倒數警告 - 強力脈動 */
         .timer-warning { 
             animation: ice-pulse 0.5s infinite alternate;
         }
@@ -105,7 +108,22 @@
             to { transform: scale(1.1); box-shadow: 0 0 60px rgba(239, 68, 68, 0.9); }
         }
 
-        .main-title { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #6366f1 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        /* 標題字體放大兩倍 (原本 2.2rem -> 4.4rem) */
+        .main-title { 
+            font-size: 4.4rem; 
+            font-weight: 900; 
+            background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #6366f1 100%); 
+            -webkit-background-clip: text; 
+            background-clip: text; 
+            color: transparent;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-title { font-size: 3rem; }
+        }
+
         #init-modal, #password-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 500; align-items: center; justify-content: center; backdrop-filter: blur(12px); }
         
         .score-input-direct { background: rgba(0,0,0,0.5) !important; border: 1px solid rgba(255,255,255,0.1); color: #10b981; outline: none; text-align: right; width: 75px; font-family: 'Orbitron', sans-serif; border-radius: 6px; padding: 4px; }
@@ -121,7 +139,7 @@
     <div id="init-modal" style="display: flex;">
         <div class="glass-card relative z-10 max-w-lg w-full p-10 rounded-3xl text-center border-cyan-500/30 shadow-2xl">
             <h2 class="text-3xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 tech-font">SYSTEM BOOT</h2>
-            <p class="text-slate-400 mb-8 text-sm">資優盃光の驅動車管理系統 V6.13</p>
+            <p class="text-slate-400 mb-8 text-sm">資優盃光の驅動車管理系統 V6.16</p>
             <div class="grid grid-cols-2 gap-6">
                 <button onclick="startSystem(true)" class="group p-6 rounded-2xl bg-cyan-600/10 border border-cyan-500/50 hover:bg-cyan-600/30 transition-all text-cyan-400 font-bold">同步上次數據</button>
                 <button onclick="startSystem(false)" class="p-6 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-all text-white font-bold">重新開始比賽</button>
@@ -145,7 +163,7 @@
         <header class="flex justify-between items-end mb-6">
             <div class="flex flex-col">
                 <h1 class="main-title">資優盃光の驅動車大賽</h1>
-                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest uppercase">Ice Crystal Module V6.13</p>
+                <p class="text-xs text-cyan-500/80 font-bold tech-font tracking-widest uppercase">Ice Crystal Module V6.16</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="announceTopFive()" class="px-4 py-2 rounded-full bg-yellow-600/20 border border-yellow-500/50 text-yellow-400 text-xs font-bold hover:bg-yellow-600/40 transition-all">📢 播報排名</button>
@@ -169,14 +187,14 @@
                 <section class="glass-card rounded-[2.5rem] p-10 border-l-[8px] border-cyan-500 relative overflow-hidden">
                     <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
                         <!-- Alpha -->
-                        <div class="w-full md:w-[35%] flex flex-col items-center">
+                        <div class="w-full md:w-[38%] flex flex-col items-center overflow-hidden">
                             <div class="text-[10px] text-cyan-400 tech-font mb-2 uppercase tracking-widest">Pilot Alpha</div>
                             <div id="p1-name" class="team-display-name h-24 flex items-center justify-center">---</div>
                             <input type="number" id="p1-score" placeholder="成績" class="w-2/3 bg-black/40 border border-slate-800 rounded-xl py-3 text-center text-3xl text-cyan-400 font-mono mt-2">
                         </div>
                         
                         <!-- 計時核心 -->
-                        <div class="flex flex-col items-center">
+                        <div class="flex flex-col items-center flex-shrink-0">
                             <div class="timer-container">
                                 <input type="number" id="timer-input" value="60" class="tech-font" onchange="updateCustomTimer(this.value)">
                             </div>
@@ -184,7 +202,7 @@
                         </div>
 
                         <!-- Bravo -->
-                        <div class="w-full md:w-[35%] flex flex-col items-center">
+                        <div class="w-full md:w-[38%] flex flex-col items-center overflow-hidden">
                             <div class="text-[10px] text-purple-400 tech-font mb-2 uppercase tracking-widest">Pilot Bravo</div>
                             <div id="p2-name" class="team-display-name h-24 flex items-center justify-center">---</div>
                             <input type="number" id="p2-score" placeholder="成績" class="w-2/3 bg-black/40 border border-slate-800 rounded-xl py-3 text-center text-3xl text-purple-400 font-mono mt-2">
@@ -267,6 +285,8 @@
                 p1Data = null; p2Data = null;
                 document.getElementById('p1-name').innerText = "---";
                 document.getElementById('p2-name').innerText = "---";
+                document.getElementById('p1-score').value = "";
+                document.getElementById('p2-score').value = "";
                 document.getElementById('reset-pw-input').value = "";
                 closePwModal();
                 speak("數據已重設。");
@@ -345,6 +365,11 @@
             if (pool.length === 0) return notify("已完賽");
             isDrawing = true;
             speak("尋找對手...");
+            
+            // 隨機抽籤時清空對戰區的分數欄位
+            document.getElementById('p1-score').value = "";
+            document.getElementById('p2-score').value = "";
+
             const p1Disp = document.getElementById('p1-name'), p2Disp = document.getElementById('p2-name');
             p1Disp.classList.add('slot-machine-anim'); p2Disp.classList.add('slot-machine-anim');
             let counter = 0;
